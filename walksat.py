@@ -31,7 +31,7 @@ def get_initial_interpretation(n):
         value = random.choice([True, False])
         interpretation[key] = value
 
-    print(f"- initial_interpretation: {interpretation}")
+    # print(f"- initial_interpretation: {interpretation}")
     return interpretation
 
 def is_clause_satisfied(clause, interpretation):
@@ -47,7 +47,7 @@ def is_clause_satisfied(clause, interpretation):
 def evaluate_clauses(clauses, interpretation):
     satisfied_clauses, unsatisfied_clauses = [], []
     for clause in clauses:
-        if is_clause_satisfied(clause=clause, interpretation=interpretation):
+        if is_clause_satisfied(clause, interpretation):
             satisfied_clauses.append(clause)
         else:
             unsatisfied_clauses.append(clause)
@@ -68,9 +68,10 @@ def walk_sat(clauses):
     flips = 0
     start_time = time.time()
     while time.time() - start_time < 0.001:
-        satisfied_clauses, unsatisfied_clauses = evaluate_clauses(clauses=clauses, interpretation=initial_interpretation)
+        satisfied_clauses, unsatisfied_clauses = evaluate_clauses(clauses,
+                                                                  initial_interpretation)
         satisfied, unsatisfied = len(satisfied_clauses), len(unsatisfied_clauses)
-        print(f"- satisfied: {satisfied} / unsatisfied: {unsatisfied}")
+        # print(f"- satisfied: {satisfied} / unsatisfied: {unsatisfied}")
 
         if satisfied == len(clauses):
             print(f"Success with {flips} flip(s)")
@@ -78,11 +79,11 @@ def walk_sat(clauses):
 
         is_flip_greedy = random.choice([True, False])
         clause_to_flip = random.choice(unsatisfied_clauses)
-        print("-" * 100)
+        # print("-" * 100)
         if is_flip_greedy:
-            print("* GREEDY")
-            print(f"- unsatisfied_clauses: {unsatisfied_clauses}")
-            print(f"- clause_to_flip (random): {clause_to_flip}")
+            # print("* GREEDY")
+            # print(f"- unsatisfied_clauses: {unsatisfied_clauses}")
+            # print(f"- clause_to_flip (random): {clause_to_flip}")
             data = {}
             for literal_to_flip in clause_to_flip:
                 satisfied, unsatisfied = 0, 0
@@ -96,14 +97,14 @@ def walk_sat(clauses):
                         unsatisfied += 1
                 data[literal_to_flip] = satisfied
             best_literal = max(data, key=data.get)
-            print(f"- best_literal_to_flip (greedy): {best_literal} from {data}")
+            # print(f"- best_literal_to_flip (greedy): {best_literal} from {data}")
             flip_literal(initial_interpretation, best_literal)
         else:
-            print("* RANDOM WALK")
-            print(f"- unsatisfied_clauses: {unsatisfied_clauses}")
-            print(f"- clause_to_flip (random): {clause_to_flip}")
+            # print("* RANDOM WALK")
+            # print(f"- unsatisfied_clauses: {unsatisfied_clauses}")
+            # print(f"- clause_to_flip (random): {clause_to_flip}")
             literal_to_flip = random.choice(clause_to_flip)
-            print(f"- literal_to_flip (random): {literal_to_flip}")
+            # print(f"- literal_to_flip (random): {literal_to_flip}")
             flip_literal(initial_interpretation, literal_to_flip)
 
         flips += 1
@@ -112,19 +113,17 @@ def walk_sat(clauses):
     return -1
 
 def simulation():
-    # Generate 3SAT problems
+    # Generate 50 3SAT problems for each ratio
     problems = []
-    ratios = range(1, 11)
     c_values = list(range(20, 201, 20))
-    n = 20
-    for ratio in ratios:
-        c = ratio * n
+    for c in c_values:
         for _ in range(50):
-            problem = generate_randomized_3sat_problem(c, n)
+            problem = generate_randomized_3sat_problem(c, 20)
             problems.append((c, problem))
 
+    # Get the results as dictionary
     results = {}
-    for c in range(20, 201, 20):
+    for c in c_values:
         results[c] = {
             "success": 0,
             "flips": []
@@ -134,33 +133,43 @@ def simulation():
         if result != -1:
             results[c]["success"] += 1
             results[c]["flips"].append(result)
+    # print(results)
 
-    print(results)
-
-    successful_c_values = [c for c in c_values if results[c]["success"] > 0]
+    # Generate plots
     success_counts, median_flips = [], []
-    for c in successful_c_values:
-        success_count = results[c]["success"]
-        success_counts.append(success_count)
-
+    successful_c_values = []
+    for c in c_values:
+        success_counts.append(results[c]["success"])
         if results[c]["flips"]:
             median_flip = median(results[c]["flips"])
             median_flips.append(median_flip)
+            successful_c_values.append(c)
+    # print(median_flips)
 
-    c_value_to_ratio = [c / n for c in successful_c_values]
+    n = 20
+    c_to_ratio = [c / n for c in c_values]
+    successful_c_to_ratio = [c / n for c in successful_c_values]
 
-    # Plots
-    def plot_result(title, y, ylabel):
-        plt.title(title)
-        plt.plot(c_value_to_ratio, y)
-        plt.xlabel("Ratio")
-        plt.xticks(c_value_to_ratio)
-        plt.ylabel(ylabel)
-        plt.grid(True)
-        plt.show()
+    plt.figure(figsize=(10, 4))
 
-    plot_result("WalkSAT Success Count by Ratio", success_counts, "Number of Successes")
-    plot_result("Median Number of Flips by Ratio", median_flips, "Median Flips")
+    plt.subplot(1, 2, 1)
+    plt.title("WalkSAT Success Count")
+    plt.plot(c_to_ratio, success_counts)
+    plt.xlabel("Ratio (C/N)")
+    plt.xticks(c_to_ratio)
+    plt.ylabel("Number of Successes")
+    plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    plt.title("Median Number of Flips")
+    plt.plot(successful_c_to_ratio, median_flips)
+    plt.xlabel("Ratio (C/N)")
+    plt.xticks(successful_c_to_ratio)
+    plt.ylabel("Median Flips")
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     simulation()
