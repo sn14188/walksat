@@ -24,6 +24,15 @@ def generate_randomized_3sat_problem(c, n):
     # print(f"3SAT problem: {clauses}")
     return clauses
 
+def generate_problems_for_simulation(c_values, n, iterations):
+    problems = []
+    for c in c_values:
+        for _ in range(50):
+            problem = generate_randomized_3sat_problem(c, 20)
+            problems.append((c, problem))
+
+    return problems
+
 def get_initial_interpretation(n):
     interpretation = {}
     for i in range(1, n + 1):
@@ -67,7 +76,7 @@ def walk_sat(clauses):
 
     flips = 0
     start_time = time.time()
-    while time.time() - start_time < 0.001:
+    while time.time() - start_time < 1:
         satisfied_clauses, unsatisfied_clauses = evaluate_clauses(clauses,
                                                                   initial_interpretation)
         satisfied, unsatisfied = len(satisfied_clauses), len(unsatisfied_clauses)
@@ -113,13 +122,11 @@ def walk_sat(clauses):
     return -1
 
 def simulation():
-    # Generate 50 3SAT problems for each ratio
-    problems = []
+    # Generate 50 3SAT problems for each c values
+    n = 20
+    iterations = 50
     c_values = list(range(20, 201, 20))
-    for c in c_values:
-        for _ in range(50):
-            problem = generate_randomized_3sat_problem(c, 20)
-            problems.append((c, problem))
+    problems = generate_problems_for_simulation(c_values, n, iterations)
 
     # Get the results as dictionary
     results = {}
@@ -146,7 +153,6 @@ def simulation():
             successful_c_values.append(c)
     # print(median_flips)
 
-    n = 20
     c_to_ratio = [c / n for c in c_values]
     successful_c_to_ratio = [c / n for c in successful_c_values]
 
